@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ドローン操作 練習ツール (子ども向けデザイン版)</title>
+    <style>
+        /* 全体のリセットとスクロール防止 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #e0f7fa;
+            color: #333;
+            overflow: hidden; 
+            touch-action: none; 
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh; 
+        }
+
+        /* ドローン表示エリア */
+        #display-area {
+            flex: 1;
+            position: relative;
+            background-color: #e8f5e9; 
+            margin: 10px;
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 影（シャドウ） */
+        #shadow {
+            width: 70px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.4);
+            border-radius: 50%;
+            position: absolute;
+            filter: blur(4px);
+            transition: transform 0.05s linear, opacity 0.05s linear;
+        }
+
+        /* ドローンアイコン */
+        #drone {
+            width: 90px;
+            height: 90px;
+            position: absolute;
+            transition: transform 0.05s linear; 
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
+        }
+
+        /* 状態・テキスト表示エリア */
+        #status-area {
+            text-align: center;
+            height: 45px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #00796b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #status-area .status-input {
+            color: #333;
+            font-size: 18px;
+        }
+
+        /* モード切替エリア */
+        #mode-area {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 10px 10px;
+        }
+        .mode-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 20px;
+            background-color: #b2dfdb;
+            color: #004d40;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mode-btn.active {
+            background-color: #00796b;
+            color: #ffffff;
+        }
+
+        /* コントローラー（スティック）エリア */
+        #controller-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 10px 20px 30px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+        }
+
+        .joystick-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 120px;
+        }
+        
+        .joystick-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .joystick-base {
+            width: 110px;
+            height: 110px;
+            background-color: #cfd8dc;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+            transition: opacity 0.3s;
+        }
+        .joystick-base.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .joystick-knob {
+            width: 45px;
+            height: 45px;
+            background-color: #ff7043;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            pointer-events: none; 
+        }
+
+        /* 中央のリセットボタンエリア */
+        .center-controls {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-bottom: 25px; 
+            gap: 10px;
+        }
+
+        #reset-btn {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background-color: #ffb74d;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            line-height: 1.3;
+        }
+        #reset-btn:active {
+            background-color: #ffa726;
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ドローン表示エリア -->
+    <div id="display-area">
+        <!-- 影 -->
+        <div id="shadow"></div>
+
+        <!-- 子ども向けに改良したドローン本体 -->
+        <svg id="drone" viewBox="0 0 100 100">
+            <!-- アーム -->
+            <line x1="20" y1="25" x2="50" y2="50" stroke="#ff5252" stroke-width="8" stroke-linecap="round"/>
+            <line x1="80" y1="25" x2="50" y2="50" stroke="#ff5252" stroke-width="8" stroke-linecap="round"/>
+            <line x1="20" y1="75" x2="50" y2="50" stroke="#424242" stroke-width="8" stroke-linecap="round"/>
+            <line x1="80" y1="75" x2="50" y2="50" stroke="#424242" stroke-width="8" stroke-linecap="round"/>
+            
+            <!-- プロペラ -->
+            <circle cx="20" cy="25" r="16" fill="#ff5252" opacity="0.8"/>
+            <circle cx="80" cy="25" r="16" fill="#ff5252" opacity="0.8"/>
+            <circle cx="20" cy="75" r="16" fill="#424242" opacity="0.8"/>
+            <circle cx="80" cy="75" r="16" fill="#424242" opacity="0.8"/>
+
+            <!-- ボディ（丸っこいカプセル型に） -->
+            <rect x="30" y="25" width="40" height="50" rx="20" fill="#333" stroke="#fff" stroke-width="2"/>
+
+            <!-- まえを示す赤い矢印（鼻先） -->
+            <polygon points="50,10 40,25 60,25" fill="#ff5252"/>
+            
+            <!-- ロボットの目（これで前がどちらか一目でわかる！） -->
+            <circle cx="40" cy="38" r="5" fill="#fff"/>
+            <circle cx="60" cy="38" r="5" fill="#fff"/>
+            <circle cx="40" cy="37" r="2.5" fill="#000"/>
+            <circle cx="60" cy="37" r="2.5" fill="#000"/>
+
+            <!-- ひらがなで「まえ」 -->
+            <text x="50" y="58" font-family="sans-serif" font-weight="bold" font-size="13" fill="white" text-anchor="middle" dominant-baseline="central">まえ</text>
+        </svg>
+    </div>
+
+    <!-- 状態テキスト -->
+    <div id="status-area">スタンバイ <span style='color:#666;'>(画面の上が「まえ」だよ)</span></div>
+
+    <!-- モード切替 -->
+    <div id="mode-area">
+        <button class="mode-btn active" data-mode="0">① 左右だけ</button>
+        <button class="mode-btn" data-mode="1">② 前後と左右</button>
+        <button class="mode-btn" data-mode="2">③ ぜんぶ</button>
+    </div>
+
+    <!-- コントローラー -->
+    <div id="controller-area">
+        <div class="joystick-container">
+            <div class="joystick-label">左 (上下・回転)</div>
+            <div id="stick-left" class="joystick-base disabled">
+                <div id="knob-left" class="joystick-knob"></div>
+            </div>
+        </div>
+        
+        <div class="center-controls">
+            <button id="reset-btn">位置リセット</button>
+        </div>
+
+        <div class="joystick-container">
+            <div class="joystick-label">右 (前後・左右)</div>
+            <div id="stick-right" class="joystick-base">
+                <div id="knob-right" class="joystick-knob"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 状態管理 ===
+        let currentMode = 0; 
+        let droneState = { x: 0, y: 0, rotation: 0, altitude: 40 };
+        let input = { left: { x: 0, y: 0, pointerId: null }, right: { x: 0, y: 0, pointerId: null } };
+
+        const droneEl = document.getElementById('drone');
+        const shadowEl = document.getElementById('shadow'); 
+        const displayArea = document.getElementById('display-area');
+        const statusArea = document.getElementById('status-area');
+        const baseLeft = document.getElementById('stick-left');
+        const knobLeft = document.getElementById('knob-left');
+        const baseRight = document.getElementById('stick-right');
+        const knobRight = document.getElementById('knob-right');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        function resetDrone() {
+            droneState = { x: 0, y: 0, rotation: 0, altitude: 40 };
+        }
+
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentMode = parseInt(e.target.getAttribute('data-mode'));
+                
+                if (currentMode >= 2) {
+                    baseLeft.classList.remove('disabled');
+                } else {
+                    baseLeft.classList.add('disabled');
+                    input.left = { x: 0, y: 0, pointerId: null };
+                    knobLeft.style.transform = `translate(-50%, -50%)`;
+                }
+                resetDrone();
+            });
+        });
+
+        resetBtn.addEventListener('click', resetDrone);
+
+        function handleJoystick(event, side, baseEl, knobEl) {
+            if (side === 'left' && currentMode < 2) return;
+
+            const rect = baseEl.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const maxRadius = rect.width / 2;
+
+            let dx = event.clientX - centerX;
+            let dy = event.clientY - centerY;
+
+            let distance = Math.hypot(dx, dy);
+            if (distance > maxRadius) distance = maxRadius;
+            let angle = Math.atan2(dy, dx);
+
+            if (currentMode === 0 && side === 'right') {
+                dy = 0;
+                distance = Math.abs(dx) > maxRadius ? maxRadius : Math.abs(dx);
+                angle = dx >= 0 ? 0 : Math.PI;
+            }
+
+            let knobX = distance * Math.cos(angle);
+            let knobY = distance * Math.sin(angle);
+
+            input[side].x = knobX / maxRadius;
+            input[side].y = knobY / maxRadius;
+
+            knobEl.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+        }
+
+        function resetJoystick(side, knobEl) {
+            input[side].x = 0;
+            input[side].y = 0;
+            input[side].pointerId = null;
+            knobEl.style.transform = `translate(-50%, -50%)`;
+        }
+
+        // --- イベントリスナー ---
+        baseRight.addEventListener('pointerdown', e => {
+            if (input.right.pointerId !== null) return;
+            baseRight.setPointerCapture(e.pointerId);
+            input.right.pointerId = e.pointerId;
+            handleJoystick(e, 'right', baseRight, knobRight);
+        });
+        baseRight.addEventListener('pointermove', e => {
+            if (input.right.pointerId === e.pointerId) handleJoystick(e, 'right', baseRight, knobRight);
+        });
+        const releaseRight = e => {
+            if (input.right.pointerId === e.pointerId) resetJoystick('right', knobRight);
+        };
+        baseRight.addEventListener('pointerup', releaseRight);
+        baseRight.addEventListener('pointercancel', releaseRight);
+
+        baseLeft.addEventListener('pointerdown', e => {
+            if (input.left.pointerId !== null || currentMode < 2) return;
+            baseLeft.setPointerCapture(e.pointerId);
+            input.left.pointerId = e.pointerId;
+            handleJoystick(e, 'left', baseLeft, knobLeft);
+        });
+        baseLeft.addEventListener('pointermove', e => {
+            if (input.left.pointerId === e.pointerId) handleJoystick(e, 'left', baseLeft, knobLeft);
+        });
+        const releaseLeft = e => {
+            if (input.left.pointerId === e.pointerId) resetJoystick('left', knobLeft);
+        };
+        baseLeft.addEventListener('pointerup', releaseLeft);
+        baseLeft.addEventListener('pointercancel', releaseLeft);
+
+        // === メインループ ===
+        function update() {
+            const moveSpeed = 4.0;
+            const rotSpeed = 3.0;
+            const altitudeSpeed = 2.0; 
+
+            let statusTexts = [];
+            if (input.right.y < -0.2) statusTexts.push("前進");
+            if (input.right.y > 0.2) statusTexts.push("後退");
+            if (input.right.x < -0.2) statusTexts.push("左移動");
+            if (input.right.x > 0.2) statusTexts.push("右移動");
+            if (input.left.y < -0.2) statusTexts.push("上昇");
+            if (input.left.y > 0.2) statusTexts.push("下降");
+            if (input.left.x < -0.2) statusTexts.push("左回転");
+            if (input.left.x > 0.2) statusTexts.push("右回転");
+
+            statusArea.innerHTML = statusTexts.length > 0 ? `操作中: <span class='status-input'>${statusTexts.join(" + ")}</span>` : "ホバリング中 <span style='color:#666;'>(画面の上が「まえ」だよ)</span>";
+
+            const rad = droneState.rotation * (Math.PI / 180);
+            const inputUp = -input.right.y; 
+            const inputRight = input.right.x; 
+
+            droneState.x += (inputUp * Math.sin(rad) + inputRight * Math.cos(rad)) * moveSpeed;
+            droneState.y -= (inputUp * Math.cos(rad) - inputRight * Math.sin(rad)) * moveSpeed;
+            droneState.rotation += input.left.x * rotSpeed;
+            
+            droneState.altitude += -input.left.y * altitudeSpeed;
+            if (droneState.altitude > 150) droneState.altitude = 150; 
+            if (droneState.altitude < 0) droneState.altitude = 0;     
+
+            const bounds = displayArea.getBoundingClientRect();
+            const maxW = bounds.width / 2 - 45; 
+            const maxH = bounds.height / 2 - 45;
+            
+            if (droneState.x > maxW) droneState.x = maxW;
+            if (droneState.x < -maxW) droneState.x = -maxW;
+            if (droneState.y > maxH) droneState.y = maxH;
+            if (droneState.y < -maxH) droneState.y = -maxH;
+
+            const shadowScale = Math.max(0.2, 1.0 - (droneState.altitude / 200));
+            const shadowOpacity = Math.max(0.05, 0.5 - (droneState.altitude / 300));
+            shadowEl.style.transform = `translate(${droneState.x}px, ${droneState.y}px) scale(${shadowScale})`;
+            shadowEl.style.opacity = shadowOpacity;
+
+            const visualY = droneState.y - droneState.altitude; 
+            const visualScale = 0.8 + (droneState.altitude / 400);
+
+            droneEl.style.transform = `translate(${droneState.x}px, ${visualY}px) rotate(${droneState.rotation}deg) scale(${visualScale})`;
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+</html>
