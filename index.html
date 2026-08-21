@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ドローン操作 練習ツール (子ども向けデザイン版)</title>
+    <title>ドローン操作 練習ツール (完成版)</title>
     <style>
         /* 全体のリセットとスクロール防止 */
         * {
@@ -24,6 +24,32 @@
             height: 100vh;
             height: 100dvh; 
         }
+
+        /* --- 横向き時の警告画面 --- */
+        #landscape-warning {
+            display: none; /* 普段は隠しておく */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        /* 画面が横向き(landscape)になった時だけ警告を表示 */
+        @media screen and (orientation: landscape) {
+            #landscape-warning {
+                display: flex;
+            }
+        }
+        /* -------------------------- */
 
         /* ドローン表示エリア */
         #display-area {
@@ -182,6 +208,12 @@
 </head>
 <body>
 
+    <!-- 横向き時の警告画面 -->
+    <div id="landscape-warning">
+        <div style="font-size: 40px; margin-bottom: 10px;">📱🔄</div>
+        スマホをたてにもって<br>れんしゅうしよう！
+    </div>
+
     <!-- ドローン表示エリア -->
     <div id="display-area">
         <!-- 影 -->
@@ -207,7 +239,7 @@
             <!-- まえを示す赤い矢印（鼻先） -->
             <polygon points="50,10 40,25 60,25" fill="#ff5252"/>
             
-            <!-- ロボットの目（これで前がどちらか一目でわかる！） -->
+            <!-- ロボットの目 -->
             <circle cx="40" cy="38" r="5" fill="#fff"/>
             <circle cx="60" cy="38" r="5" fill="#fff"/>
             <circle cx="40" cy="37" r="2.5" fill="#000"/>
@@ -252,7 +284,8 @@
     <script>
         // === 状態管理 ===
         let currentMode = 0; 
-        let droneState = { x: 0, y: 0, rotation: 0, altitude: 40 };
+        
+        let droneState = { x: 0, y: 60, rotation: 0, altitude: 40 };
         let input = { left: { x: 0, y: 0, pointerId: null }, right: { x: 0, y: 0, pointerId: null } };
 
         const droneEl = document.getElementById('drone');
@@ -267,7 +300,7 @@
         const resetBtn = document.getElementById('reset-btn');
 
         function resetDrone() {
-            droneState = { x: 0, y: 0, rotation: 0, altitude: 40 };
+            droneState = { x: 0, y: 60, rotation: 0, altitude: 40 };
         }
 
         modeBtns.forEach(btn => {
